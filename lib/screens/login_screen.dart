@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recipe_app/screens/main_screen.dart';
 
 import 'home_screen.dart';
 
@@ -32,10 +33,13 @@ class LoginScreen extends StatelessWidget {
             ),
             const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: () {Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomeScreen()),
-            );},
+             onPressed: () {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => const MainScreen()),
+  );
+},
+
               style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                   backgroundColor: const Color(0xFF042628),

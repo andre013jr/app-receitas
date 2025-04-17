@@ -9,6 +9,13 @@ import 'package:flutter/material.dart';
 import 'recipe_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
+  final Function(Set<int>, List<dynamic>) onFavoritesUpdated;
+
+  const HomeScreen({
+    Key? key,
+    required this.onFavoritesUpdated,
+  }) : super(key: key);
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -20,7 +27,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String? _selectedCategory;
   String? _selectedIngredient;
-  TextEditingController _searchController = TextEditingController(); Set<int> favoriteIndexes = {}; 
+  TextEditingController _searchController = TextEditingController();
+  Set<int> favoriteIndexes = {};
+  List<dynamic> _allRecipes = []; // Vai armazenar as receitas carregadas
 
   @override
   void initState() {
@@ -32,6 +41,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _recipesFuture = RecipeService.fetchRecipes();
     _categoriesFuture = RecipeService.fetchCategories();
     _ingredientsFuture = RecipeService.fetchIngredients();
+
+    // Armazena receitas quando forem carregadas
+    _recipesFuture.then((recipes) {
+      _allRecipes = recipes;
+    });
   }
 
   void _filterRecipes() {
@@ -48,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-    void _toggleFavorite(int index) {
+  void _toggleFavorite(int index) {
     setState(() {
       if (favoriteIndexes.contains(index)) {
         favoriteIndexes.remove(index);
@@ -56,7 +70,11 @@ class _HomeScreenState extends State<HomeScreen> {
         favoriteIndexes.add(index);
       }
     });
+
+    // Atualiza a MainScreen com os favoritos
+    widget.onFavoritesUpdated(favoriteIndexes, _allRecipes);
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ProfileScreen(favoriteIndexes, recipes),
+                              builder: (context) => RecipeDetailScreen(mealId: recipe["idMeal"], recipe: recipe),
                             ),
                           );
                         },
