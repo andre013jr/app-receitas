@@ -1,0 +1,31 @@
+name: recipe_app
+description: "Um aplicativo de receitas onde os usuários podem adicionar e favoritar receitas."
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^0.13.6
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_svg: ^2.0.9
+
+  flutter_lints: ^3.0.0
+
+flutter:
+  assets:
+     - assets/images/decoration.svg
+
+  uses-material-design: true
+
+ 
+
+ 
