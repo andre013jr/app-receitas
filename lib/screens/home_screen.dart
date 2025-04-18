@@ -91,74 +91,128 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 20),
 
             // Barra de pesquisa por nome
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: "Pesquisar receita...",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onChanged: (value) {
-                _filterRecipes();
-              },
-            ),
+           // Campo de pesquisa (estilo Apple-like)
+Container(
+  decoration: BoxDecoration(
+    color: Colors.grey.shade200,
+    borderRadius: BorderRadius.circular(12),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.grey.withOpacity(0.1),
+        blurRadius: 8,
+        offset: Offset(0, 2),
+      ),
+    ],
+  ),
+  child: TextField(
+    controller: _searchController,
+    decoration: InputDecoration(
+      contentPadding: EdgeInsets.symmetric(vertical: 14),
+      hintText: "Pesquisar receita...",
+      hintStyle: TextStyle(color: Colors.grey.shade600),
+      prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+      border: InputBorder.none,
+    ),
+    onChanged: (value) {
+      _filterRecipes();
+    },
+  ),
+),
 
             const SizedBox(height: 10),
             const Text("Filtrar por:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
             // Dropdown de Categorias
-            FutureBuilder<List<String>>(
-              future: _categoriesFuture,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox();
-                return DropdownButton<String>(
-                  value: _selectedCategory,
-                  hint: const Text("Categoria"),
-                  isExpanded: true,
-                  items: snapshot.data!.map((category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(category),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategory = value;
-                      _selectedIngredient = null;
-                      _searchController.clear();
-                    });
-                    _filterRecipes();
-                  },
-                );
-              },
-            ),
+           FutureBuilder<List<String>>(
+  future: _categoriesFuture,
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) return const SizedBox();
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedCategory,
+          hint: const Text("Categoria", style: TextStyle(color: Colors.black54)),
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down_rounded),
+          items: snapshot.data!.map((category) {
+            return DropdownMenuItem(
+              value: category,
+              child: Text(category),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedCategory = value;
+              _selectedIngredient = null;
+              _searchController.clear();
+            });
+            _filterRecipes();
+          },
+        ),
+      ),
+    );
+  },
+),
+
 
             // Dropdown de Ingredientes
-            FutureBuilder<List<String>>(
-              future: _ingredientsFuture,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox();
-                return DropdownButton<String>(
-                  value: _selectedIngredient,
-                  hint: const Text("Ingrediente"),
-                  isExpanded: true,
-                  items: snapshot.data!.map((ingredient) {
-                    return DropdownMenuItem(
-                      value: ingredient,
-                      child: Text(ingredient),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedIngredient = value;
-                      _selectedCategory = null;
-                      _searchController.clear();
-                    });
-                    _filterRecipes();
-                  },
-                );
-              },
-            ),
+           FutureBuilder<List<String>>(
+  future: _ingredientsFuture,
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) return const SizedBox();
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedIngredient,
+          hint: const Text("Ingrediente", style: TextStyle(color: Colors.black54)),
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down_rounded),
+          items: snapshot.data!.map((ingredient) {
+            return DropdownMenuItem(
+              value: ingredient,
+              child: Text(ingredient),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedIngredient = value;
+              _selectedCategory = null;
+              _searchController.clear();
+            });
+            _filterRecipes();
+          },
+        ),
+      ),
+    );
+  },
+),
+
 
             const SizedBox(height: 20),
             Expanded(

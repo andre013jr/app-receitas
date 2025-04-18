@@ -9,8 +9,8 @@ class RecipeGrid extends StatefulWidget {
 }
 
 class _RecipeGridState extends State<RecipeGrid> {
-  List<dynamic> recipes = [];
-  Set<int> favoriteIndexes = {}; // Armazena os favoritos
+  List<Map<String, dynamic>> recipes = [];
+  Set<int> favoriteIndexes = {};
   bool isLoading = true;
 
   @override
@@ -21,9 +21,21 @@ class _RecipeGridState extends State<RecipeGrid> {
 
   Future<void> fetchRecipes() async {
     try {
-      final fetchedRecipes = await RecipeService.fetchRecipes();
+      final basicRecipes = await RecipeService.fetchRecipes();
+      
+      // Carrega os detalhes (categoria, área etc) para cada receita
+      final detailedRecipes = await Future.wait(basicRecipes.map((recipe) async {
+        final id = recipe["idMeal"];
+        final details = await RecipeService.fetchRecipeDetails(id);
+        return {
+          ...recipe,
+          "strCategory": details["strCategory"] ?? "",
+          "strArea": details["strArea"] ?? "",
+        };
+      }));
+
       setState(() {
-        recipes = fetchedRecipes;
+        recipes = detailedRecipes.cast<Map<String, dynamic>>();
         isLoading = false;
       });
     } catch (error) {
@@ -66,10 +78,12 @@ class _RecipeGridState extends State<RecipeGrid> {
         itemBuilder: (context, index) {
           final recipe = recipes[index];
           return RecipeCard(
-            imageUrl: recipe["strMealThumb"], // Pega a imagem da API
-            title: recipe["strMeal"], // Nome da receita
+            imageUrl: recipe["strMealThumb"],
+            title: recipe["strMeal"],
+            
             isFavorite: favoriteIndexes.contains(index),
-            onFavoriteToggle: () => toggleFavorite(index), onTap: () {  },
+            onFavoriteToggle: () => toggleFavorite(index),
+            onTap: () {}, // pode navegar para detalhes se quiser
           );
         },
       ),
