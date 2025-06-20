@@ -66,13 +66,13 @@ class _LoginScreenState extends State<LoginScreen> {
             _buildTextField(
               controller: _emailController, // Associe o controller
               icon: Icons.email,
-              hint: 'EMAIL',
+              hint: 'email',
             ),
             const SizedBox(height: 20),
             _buildTextField(
               controller: _passwordController, // Associe o controller
               icon: Icons.lock,
-              hint: 'SENHA',
+              hint: 'senha',
               isPassword: true,
             ),
             const SizedBox(height: 30),
