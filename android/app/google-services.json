@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "101078431598",
+    "project_id": "app-receitas-andre-caio",
+    "storage_bucket": "app-receitas-andre-caio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:101078431598:android:ea20dd19db4bd3d7aab37f",
+        "android_client_info": {
+          "package_name": "com.example.recipe_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfwworjMVll9dkBmUulJ_RHM_oSRRaMsQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

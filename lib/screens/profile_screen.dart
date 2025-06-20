@@ -1,21 +1,26 @@
+// lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:recipe_app/widgets/recipe_card.dart';
-import 'package:recipe_app/widgets/recipe_card_grid.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Importe Firebase Auth
+import 'package:recipe_app/screens/login_screen.dart'; // Para navegação ao deslogar
+import 'recipe_detail_screen.dart'; // Para navegar para os detalhes da receita
 
 class ProfileScreen extends StatelessWidget {
-  final Set<int> favoriteIndexes;
+  final Set<String> favoriteMealIds; // Agora espera um Set de String (IDs)
   final List<dynamic> allRecipes;
 
-  const ProfileScreen(this.favoriteIndexes, this.allRecipes, {super.key});
+  const ProfileScreen(this.favoriteMealIds, this.allRecipes, {super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Filtra as receitas que estão na lista de todas as receitas e cujos IDs estão em favoriteMealIds
     final favoriteRecipes = allRecipes
-        .asMap()
-        .entries
-        .where((entry) => favoriteIndexes.contains(entry.key))
-        .map((entry) => entry.value)
+        .where((recipe) => favoriteMealIds.contains(recipe["idMeal"]))
         .toList();
+
+    final user = FirebaseAuth.instance.currentUser;
+    final userName = user?.displayName ?? user?.email ?? "Usuário";
+    final userAvatarUrl = user?.photoURL ?? 'https://source.unsplash.com/1600x900/?portrait'; // Imagem de perfil padrão
 
     return Scaffold(
       appBar: AppBar(
@@ -26,8 +31,15 @@ class ProfileScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.settings),
-            onPressed: () {},
+            icon: const Icon(Icons.logout), // Ícone de logout
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut(); // Desloga o usuário
+              Navigator.pushAndRemoveUntil( // Navega para a tela de login e remove todas as rotas anteriores
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (Route<dynamic> route) => false,
+              );
+            },
           ),
         ],
       ),
@@ -42,26 +54,30 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: NetworkImage('https://source.unsplash.com/1600x900/?portrait'),
+                  backgroundImage: NetworkImage(userAvatarUrl),
                   radius: 30,
                 ),
                 title: Text(
-                  'Alena Sabyan',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  userName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                trailing: Icon(Icons.arrow_forward_ios),
+                subtitle: user?.email != null ? Text(user!.email!) : null, // Exibe o e-mail
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  // Você pode adicionar uma tela de edição de perfil aqui
+                },
               ),
             ),
-            SizedBox(height: 20),
-            Text(
-              'Meus Favoritos',
+            const SizedBox(height: 20),
+            const Text(
+              'Minhas Receitas Favoritas',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             Expanded(
               child: favoriteRecipes.isEmpty
-                  ? Center(child: Text("Nenhuma receita favorita 😢"))
+                  ? const Center(child: Text("Nenhuma receita favorita 😢"))
                   : GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         crossAxisSpacing: 10,
                         mainAxisSpacing: 10,
@@ -74,8 +90,18 @@ class ProfileScreen extends StatelessWidget {
                           imageUrl: recipe["strMealThumb"],
                           title: recipe["strMeal"],
                           isFavorite: true, // Sempre favorito na aba de favoritos
-                          onFavoriteToggle: () {}, // Não precisa de toggle aqui
-                          onTap: () {},
+                          onFavoriteToggle: () {
+                            // Não faz nada aqui, pois a lista de favoritos é apenas para exibição
+                            // O toggle de favorito acontece na HomeScreen
+                          },
+                          onTap: () {
+                             Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RecipeDetailScreen(mealId: recipe["idMeal"], recipe: recipe),
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

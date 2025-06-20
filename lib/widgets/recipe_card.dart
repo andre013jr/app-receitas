@@ -104,7 +104,7 @@ class RecipeCard extends StatelessWidget {
             ),
             // Infos calorias e tempo
            
-            SizedBox(height: 8),
+            
           ],
         ),
       ),

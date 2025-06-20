@@ -1,6 +1,10 @@
+// lib/screens/main_screen.dart
 import 'package:flutter/material.dart';
 import 'package:recipe_app/recipe_service.dart';
 import 'package:recipe_app/widgets/bottom_nav_bar.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Importe Firebase Auth
+import 'package:cloud_firestore/cloud_firestore.dart'; // Importe Cloud Firestore
+
 
 import 'home_screen.dart';
 import 'profile_screen.dart';
@@ -14,26 +18,63 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  Set<int> favoriteIndexes = {};
-  List<dynamic> allRecipes = [];
+  Set<String> _favoriteMealIds = {}; // Agora armazena IDs
+  List<dynamic> _allRecipes = [];
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    _loadRecipes();
+    _loadAllRecipes();
+    _listenToFavoritesChanges(); // Ouve por mudanças nos favoritos
   }
 
-  void _loadRecipes() async {
-    final recipes = await RecipeService.fetchRecipes();
-    setState(() {
-      allRecipes = recipes;
+  // Carrega todas as receitas da API (para o ProfileScreen poder filtrar)
+  void _loadAllRecipes() async {
+    try {
+      final recipes = await RecipeService.fetchRecipes();
+      setState(() {
+        _allRecipes = recipes;
+      });
+    } catch (e) {
+      print("Erro ao carregar todas as receitas: $e");
+    }
+  }
+
+  // Escuta por mudanças nos favoritos do usuário no Firestore
+  void _listenToFavoritesChanges() {
+    _auth.authStateChanges().listen((User? user) {
+      if (user != null) {
+        _firestore.collection('users').doc(user.uid).snapshots().listen((snapshot) {
+          if (snapshot.exists && snapshot.data() != null) {
+            setState(() {
+              _favoriteMealIds = Set<String>.from(snapshot.data()!['favorites'] ?? []);
+            });
+          } else {
+            setState(() {
+              _favoriteMealIds = {}; // Limpa se não houver favoritos
+            });
+          }
+          // Atualiza o ProfileScreen sempre que os favoritos mudarem
+          _onFavoritesUpdated(_favoriteMealIds, _allRecipes);
+        });
+      } else {
+        // Se o usuário deslogar, limpa os favoritos
+        setState(() {
+          _favoriteMealIds = {};
+        });
+        _onFavoritesUpdated(_favoriteMealIds, _allRecipes);
+      }
     });
   }
 
-  void _onFavoritesUpdated(Set<int> fav, List<dynamic> recipes) {
+
+  void _onFavoritesUpdated(Set<String> favMealIds, List<dynamic> recipes) {
     setState(() {
-      favoriteIndexes = fav;
-      allRecipes = recipes;
+      _favoriteMealIds = favMealIds;
+      _allRecipes = recipes; // Mantenha _allRecipes atualizada
     });
   }
 
@@ -44,8 +85,8 @@ class _MainScreenState extends State<MainScreen> {
         onFavoritesUpdated: _onFavoritesUpdated,
       ),
       ProfileScreen(
-        favoriteIndexes,
-        allRecipes,
+        _favoriteMealIds, // Passe os IDs das receitas favoritas
+        _allRecipes,
       ),
     ];
 
