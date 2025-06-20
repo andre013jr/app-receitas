@@ -1,9 +1,9 @@
 // lib/screens/register_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Importe o Firebase Auth
-import 'package:recipe_app/screens/main_screen.dart';
+import 'package:recipe_app/screens/main_screen.dart'; // Importe sua MainScreen
 
-class RegisterScreen extends StatefulWidget { // Mude para StatefulWidget
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
@@ -13,18 +13,31 @@ class RegisterScreen extends StatefulWidget { // Mude para StatefulWidget
 class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController(); // Para o nome de usuário (opcional para o Firebase Auth)
-  final FirebaseAuth _auth = FirebaseAuth.instance; // Instância do Firebase Auth
+  final TextEditingController _usernameController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Variável de estado para controlar a visibilidade da senha
+  bool _isPasswordVisible = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _usernameController.dispose();
+    super.dispose();
+  }
 
   Future<void> _register() async {
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       // Opcional: Atualizar o perfil do usuário com o nome de usuário
-      await userCredential.user?.updateDisplayName(_usernameController.text.trim());
+      await userCredential.user
+          ?.updateDisplayName(_usernameController.text.trim());
 
       // Se o registro for bem-sucedido, navegue para a MainScreen
       Navigator.pushReplacement(
@@ -57,7 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.black),
+        leading: const BackButton(color: Colors.black),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -81,22 +94,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 hint: 'NOME DE USUARIO',
               ),
               const SizedBox(height: 20),
-              // Os campos TELEFONE e CPF não são diretamente suportados pelo Firebase Auth por e-mail/senha.
-              // Você pode removê-los ou adicioná-los a um perfil de usuário no Firestore posteriormente.
-              // Por enquanto, vou removê-los para simplificar a autenticação inicial.
-              // _buildTextField(icon: Icons.phone_android, hint: 'TELEFONE'),
-              // const SizedBox(height: 20),
-              // _buildTextField(icon: Icons.badge, hint: 'CPF'),
-              // const SizedBox(height: 20),
               _buildTextField(
                 controller: _passwordController,
                 icon: Icons.lock,
                 hint: 'SENHA',
-                isPassword: true,
+                isPassword: true, // Indica que este é um campo de senha
               ),
               const SizedBox(height: 30),
               ElevatedButton(
-                onPressed: _register, // Chame o método de registro
+                onPressed: _register,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                   backgroundColor: const Color(0xFF042628),
@@ -122,7 +128,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }) {
     return TextField(
       controller: controller,
-      obscureText: isPassword,
+      // Se for um campo de senha, obscureText depende de _isPasswordVisible
+      obscureText: isPassword ? !_isPasswordVisible : false,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon),
@@ -140,7 +147,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
           borderRadius: BorderRadius.circular(30),
           borderSide: const BorderSide(color: Color(0xFF75B9BE), width: 2),
         ),
-        suffixIcon: isPassword ? const Icon(Icons.visibility) : null,
+        // Adiciona o ícone de olho apenas se for um campo de senha
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  // Altera o ícone com base no estado _isPasswordVisible
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                ),
+                onPressed: () {
+                  // Alterna o estado _isPasswordVisible e reconstrói a UI
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+              )
+            : null, // Se não for senha, não há suffixIcon
       ),
     );
   }
