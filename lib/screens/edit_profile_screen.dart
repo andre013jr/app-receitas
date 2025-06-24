@@ -96,12 +96,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 key: _formKey,
                 child: ListView(
                   children: [
-                    CircleAvatar(
-                      backgroundImage: NetworkImage(_currentUser!.photoURL ??
-                          'https://source.unsplash.com/1600x900/?portrait'), // Display current photo
-                      radius: 60,
-                    ),
-                    const SizedBox(height: 20),
+                    // Removed CircleAvatar here
+                    // Removed SizedBox(height: 20) here
                     TextFormField(
                       controller: _displayNameController,
                       decoration: const InputDecoration(
