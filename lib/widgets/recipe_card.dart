@@ -33,80 +33,81 @@ class RecipeCard extends StatelessWidget {
             )
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Imagem com ícone de favorito
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Image.network(
-                    imageUrl,
-                    height: 120,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
+     // ... dentro do seu widget build
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Adicione esta linha
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Imagem com ícone de favorito
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                child: Image.network(
+                  imageUrl,
+                  height: 150,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Tooltip(
-                    message: isFavorite ? 'Adicionado aos favoritos!' : 'Removido dos favoritos',
-                    child: GestureDetector(
-                      onTap: () {
-                        onFavoriteToggle();
-                        if (!isFavorite) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("Adicionado à página de favoritos ❤️"),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
-                        }
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: AnimatedSwitcher(
-                          duration: Duration(milliseconds: 300),
-                          transitionBuilder: (child, animation) {
-                            return ScaleTransition(scale: animation, child: child);
-                          },
-                          child: Icon(
-                            isFavorite ? Icons.favorite : Icons.favorite_border,
-                            key: ValueKey<bool>(isFavorite),
-                            color: isFavorite ? favoriteColor : Colors.black,
-                            size: 20,
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Tooltip(
+                  message: isFavorite ? 'Adicionado aos favoritos!' : 'Remover dos favoritos',
+                  child: GestureDetector(
+                    onTap: () {
+                      onFavoriteToggle();
+                      if (!isFavorite) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Adicionado à página de favoritos ❤️"),
+                            duration: Duration(seconds: 1),
                           ),
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: Duration(milliseconds: 300),
+                        transitionBuilder: (child, animation) {
+                          return ScaleTransition(scale: animation, child: child);
+                        },
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          key: ValueKey<bool>(isFavorite),
+                          color: isFavorite ? favoriteColor : Colors.black,
+                          size: 20,
                         ),
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-            // Título
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+              ),
+            ],
+          ),
+          // Título
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
               ),
             ),
-            // Infos calorias e tempo
-           
-            
-          ],
-        ),
+          ),
+          // O espaço para "Infos calorias e tempo" será criado aqui quando você adicionar os widgets
+        ],
+      ),
+// ...
       ),
     );
   }

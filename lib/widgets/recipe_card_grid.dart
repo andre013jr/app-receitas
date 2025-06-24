@@ -66,8 +66,8 @@ class _RecipeGridState extends State<RecipeGrid> {
       return Center(child: Text("Nenhuma receita encontrada 😢"));
     }
 
-    return Expanded(
-      child: GridView.builder(
+  
+     return GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 10,
@@ -86,7 +86,7 @@ class _RecipeGridState extends State<RecipeGrid> {
             onTap: () {}, // pode navegar para detalhes se quiser
           );
         },
-      ),
+    
     );
   }
 }

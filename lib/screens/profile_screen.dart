@@ -1,10 +1,11 @@
 // lib/screens/profile_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:recipe_app/widgets/recipe_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:recipe_app/screens/login_screen.dart';
 import 'recipe_detail_screen.dart';
-import 'edit_profile_screen.dart'; // Import the new edit profile screen
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Set<String> favoriteMealIds;
@@ -17,19 +18,34 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  User? _currentUser; // To hold the current user data
+  User? _currentUser;
+  String? _userBio; // Variável para armazenar a biografia
 
   @override
   void initState() {
     super.initState();
-    _currentUser = FirebaseAuth.instance.currentUser; // Get the user once
+    _refreshUserProfile();
   }
 
-  // Function to refresh user data, called after returning from edit screen
   void _refreshUserProfile() {
-    setState(() {
-      _currentUser = FirebaseAuth.instance.currentUser; // Re-fetch user data
-    });
+    _currentUser = FirebaseAuth.instance.currentUser;
+    _loadUserBio(); // Carrega a biografia ao atualizar o perfil
+    setState(() {});
+  }
+
+  // Função para carregar a biografia do Firestore
+  Future<void> _loadUserBio() async {
+    if (_currentUser != null) {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_currentUser!.uid)
+          .get();
+      if (mounted && userDoc.exists && userDoc.data()!.containsKey('bio')) {
+        setState(() {
+          _userBio = userDoc.data()!['bio'];
+        });
+      }
+    }
   }
 
   @override
@@ -38,11 +54,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .where((recipe) => widget.favoriteMealIds.contains(recipe["idMeal"]))
         .toList();
 
-    // Use _currentUser for display
     final userName =
         _currentUser?.displayName ?? _currentUser?.email ?? "Usuário";
-    final userAvatarUrl = _currentUser?.photoURL ??
-        'https://source.unsplash.com/1600x900/?portrait';
+    final userAvatarUrl = _currentUser?.photoURL;
 
     return Scaffold(
       appBar: AppBar(
@@ -56,7 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              if (!mounted) return; // Check if widget is still in tree
+              if (!mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -77,8 +91,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: NetworkImage(userAvatarUrl),
                   radius: 30,
+                  // Lógica para exibir um ícone padrão se a URL for nula ou inválida
+                  backgroundImage: (userAvatarUrl != null && userAvatarUrl.isNotEmpty)
+                      ? NetworkImage(userAvatarUrl)
+                      : null,
+                  child: (userAvatarUrl == null || userAvatarUrl.isEmpty)
+                      ? const Icon(Icons.person, size: 30)
+                      : null,
                 ),
                 title: Text(
                   userName,
@@ -89,19 +109,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     : null,
                 trailing: const Icon(Icons.arrow_forward_ios),
                 onTap: () async {
-                  // Navigate to EditProfileScreen and await its result
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const EditProfileScreen(),
                     ),
                   );
-                  // When returning from EditProfileScreen, refresh the profile data
                   _refreshUserProfile();
                 },
               ),
             ),
             const SizedBox(height: 20),
+            // Seção da Biografia
+            if (_userBio != null && _userBio!.isNotEmpty) ...[
+              const Text(
+                'Sobre Mim',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _userBio!,
+                style: const TextStyle(fontSize: 16, height: 1.4),
+              ),
+              const SizedBox(height: 20),
+            ],
             const Text(
               'Minhas Receitas Favoritas',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -124,9 +155,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           imageUrl: recipe["strMealThumb"],
                           title: recipe["strMeal"],
                           isFavorite: true,
-                          onFavoriteToggle: () {
-                            // No action needed here as this is for display only
-                          },
+                          onFavoriteToggle: () {},
                           onTap: () {
                             Navigator.push(
                               context,
