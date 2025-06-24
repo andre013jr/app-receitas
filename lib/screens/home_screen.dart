@@ -8,7 +8,8 @@ import 'package:cloud_firestore/cloud_firestore.dart'; // Importe Cloud Firestor
 import 'recipe_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final Function(Set<String>, List<dynamic>) onFavoritesUpdated; // Mude para Set<String>
+  final Function(Set<String>, List<dynamic>)
+      onFavoritesUpdated; // Mude para Set<String>
 
   const HomeScreen({
     Key? key,
@@ -50,7 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (favDoc.exists && favDoc.data() != null) {
         setState(() {
           // Garante que a lista de IDs de favoritos é do tipo List<dynamic> e converte para Set<String>
-          _favoriteMealIds = Set<String>.from(favDoc.data()!['favorites'] ?? []);
+          _favoriteMealIds =
+              Set<String>.from(favDoc.data()!['favorites'] ?? []);
         });
       }
     }
@@ -63,18 +65,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _recipesFuture.then((recipes) {
       _allRecipes = recipes;
-      widget.onFavoritesUpdated(_favoriteMealIds, _allRecipes); // Atualiza MainScreen com os favoritos iniciais
+      widget.onFavoritesUpdated(_favoriteMealIds,
+          _allRecipes); // Atualiza MainScreen com os favoritos iniciais
     });
   }
 
   void _filterRecipes() {
     setState(() {
       if (_searchController.text.isNotEmpty) {
-        _recipesFuture = RecipeService.fetchRecipesByName(_searchController.text);
+        _recipesFuture =
+            RecipeService.fetchRecipesByName(_searchController.text);
       } else if (_selectedCategory != null) {
-        _recipesFuture = RecipeService.fetchRecipesByCategory(_selectedCategory!);
+        _recipesFuture =
+            RecipeService.fetchRecipesByCategory(_selectedCategory!);
       } else if (_selectedIngredient != null) {
-        _recipesFuture = RecipeService.fetchRecipesByIngredient(_selectedIngredient!);
+        _recipesFuture =
+            RecipeService.fetchRecipesByIngredient(_selectedIngredient!);
       } else {
         _recipesFuture = RecipeService.fetchRecipes();
       }
@@ -103,21 +109,27 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         _favoriteMealIds.add(mealId);
         // Adicionar ao Firestore
-        userDocRef.set({
-          'favorites': FieldValue.arrayUnion([mealId]),
-        }, SetOptions(merge: true)); // Usa merge para não sobrescrever outros campos
+        userDocRef.set(
+            {
+              'favorites': FieldValue.arrayUnion([mealId]),
+            },
+            SetOptions(
+                merge: true)); // Usa merge para não sobrescrever outros campos
       }
     });
 
     widget.onFavoritesUpdated(_favoriteMealIds, _allRecipes);
 
     // Feedback visual
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_favoriteMealIds.contains(mealId) ? "Adicionado aos favoritos ❤️" : "Removido dos favoritos 💔"),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    if (!_favoriteMealIds.contains(mealId)) {
+      // Verifica se foi removido
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Removido dos favoritos 💔"),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   @override
@@ -130,13 +142,14 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 60),
-            const Text("☀️ Bom dia!", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            const Text("☀️ Bom dia!",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             Text(
-              _auth.currentUser?.displayName ?? "André", // Exibe o nome do usuário logado
+              _auth.currentUser?.displayName ??
+                  "André", // Exibe o nome do usuário logado
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
@@ -163,10 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
-
             const SizedBox(height: 10),
-            const Text("Filtrar por:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-
+            const Text("Filtrar por:",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             FutureBuilder<List<String>>(
               future: _categoriesFuture,
               builder: (context, snapshot) {
@@ -188,7 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedCategory,
-                      hint: const Text("Categoria", style: TextStyle(color: Colors.black54)),
+                      hint: const Text("Categoria",
+                          style: TextStyle(color: Colors.black54)),
                       isExpanded: true,
                       icon: const Icon(Icons.keyboard_arrow_down_rounded),
                       items: snapshot.data!.map((category) {
@@ -210,7 +223,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-
             FutureBuilder<List<String>>(
               future: _ingredientsFuture,
               builder: (context, snapshot) {
@@ -232,7 +244,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedIngredient,
-                      hint: const Text("Ingrediente", style: TextStyle(color: Colors.black54)),
+                      hint: const Text("Ingrediente",
+                          style: TextStyle(color: Colors.black54)),
                       isExpanded: true,
                       icon: const Icon(Icons.keyboard_arrow_down_rounded),
                       items: snapshot.data!.map((ingredient) {
@@ -254,7 +267,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-
             const SizedBox(height: 20),
             Expanded(
               child: FutureBuilder<List<dynamic>>(
@@ -263,14 +275,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return const Center(child: Text("Erro ao carregar receitas 😢"));
+                    return const Center(
+                        child: Text("Erro ao carregar receitas 😢"));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("Nenhuma receita encontrada."));
+                    return const Center(
+                        child: Text("Nenhuma receita encontrada."));
                   }
 
                   final recipes = snapshot.data!;
                   return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
@@ -284,12 +299,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         title: recipe["strMeal"],
                         // Verifica se o ID da receita está nos favoritos
                         isFavorite: _favoriteMealIds.contains(recipe["idMeal"]),
-                        onFavoriteToggle: () => _toggleFavorite(recipe["idMeal"], recipe),
+                        onFavoriteToggle: () =>
+                            _toggleFavorite(recipe["idMeal"], recipe),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => RecipeDetailScreen(mealId: recipe["idMeal"], recipe: recipe),
+                              builder: (context) => RecipeDetailScreen(
+                                  mealId: recipe["idMeal"], recipe: recipe),
                             ),
                           );
                         },
