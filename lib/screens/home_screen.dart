@@ -2,14 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:recipe_app/widgets/recipe_card.dart';
 import '../recipe_service.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Importe Firebase Auth
-import 'package:cloud_firestore/cloud_firestore.dart'; // Importe Cloud Firestore
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async'; // Importado para o StreamSubscription
 
 import 'recipe_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final Function(Set<String>, List<dynamic>)
-      onFavoritesUpdated; // Mude para Set<String>
+  final Function(Set<String>, List<dynamic>) onFavoritesUpdated;
 
   const HomeScreen({
     Key? key,
@@ -26,35 +26,47 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<String>> _ingredientsFuture;
 
   String? _selectedCategory;
-  String? _selectedIngredient;
+  // Alterado para um Set para permitir múltiplos ingredientes
+  Set<String> _selectedIngredients = {};
   final TextEditingController _searchController = TextEditingController();
 
-  // Agora vamos armazenar os IDs das receitas favoritas
-  Set<String> _favoriteMealIds = {}; // Mude para Set<String>
+  Set<String> _favoriteMealIds = {};
   List<dynamic> _allRecipes = [];
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  StreamSubscription? _favoritesSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    _loadFavorites(); // Carrega os favoritos do Firestore
+    _listenToFavorites();
   }
 
-  // Carrega os favoritos do usuário logado
-  void _loadFavorites() async {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _favoritesSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _listenToFavorites() {
     final user = _auth.currentUser;
     if (user != null) {
-      final favDoc = await _firestore.collection('users').doc(user.uid).get();
-      if (favDoc.exists && favDoc.data() != null) {
-        setState(() {
-          // Garante que a lista de IDs de favoritos é do tipo List<dynamic> e converte para Set<String>
-          _favoriteMealIds =
-              Set<String>.from(favDoc.data()!['favorites'] ?? []);
-        });
-      }
+      _favoritesSubscription = _firestore
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((favDoc) {
+        if (favDoc.exists && favDoc.data() != null && mounted) {
+          setState(() {
+            _favoriteMealIds =
+                Set<String>.from(favDoc.data()!['favorites'] ?? []);
+          });
+          widget.onFavoritesUpdated(_favoriteMealIds, _allRecipes);
+        }
+      });
     }
   }
 
@@ -64,30 +76,67 @@ class _HomeScreenState extends State<HomeScreen> {
     _ingredientsFuture = RecipeService.fetchIngredients();
 
     _recipesFuture.then((recipes) {
-      _allRecipes = recipes;
-      widget.onFavoritesUpdated(_favoriteMealIds,
-          _allRecipes); // Atualiza MainScreen com os favoritos iniciais
-    });
-  }
-
-  void _filterRecipes() {
-    setState(() {
-      if (_searchController.text.isNotEmpty) {
-        _recipesFuture =
-            RecipeService.fetchRecipesByName(_searchController.text);
-      } else if (_selectedCategory != null) {
-        _recipesFuture =
-            RecipeService.fetchRecipesByCategory(_selectedCategory!);
-      } else if (_selectedIngredient != null) {
-        _recipesFuture =
-            RecipeService.fetchRecipesByIngredient(_selectedIngredient!);
-      } else {
-        _recipesFuture = RecipeService.fetchRecipes();
+      if (mounted) {
+        _allRecipes = recipes;
+        widget.onFavoritesUpdated(_favoriteMealIds, _allRecipes);
       }
     });
   }
 
-  void _toggleFavorite(String mealId, dynamic recipe) async {
+  void _filterRecipes() {
+    if (mounted) {
+      setState(() {
+        _recipesFuture = _getFilteredRecipes();
+      });
+    }
+  }
+
+  Future<List<dynamic>> _getFilteredRecipes() async {
+    if (_searchController.text.isNotEmpty) {
+      return RecipeService.fetchRecipesByName(_searchController.text);
+    }
+
+    bool hasCategoryFilter = _selectedCategory != null;
+    bool hasIngredientFilter = _selectedIngredients.isNotEmpty;
+
+    if (!hasCategoryFilter && !hasIngredientFilter) {
+      return RecipeService.fetchRecipes();
+    }
+
+    List<Future<List<dynamic>>> futures = [];
+
+    if (hasCategoryFilter) {
+      futures.add(RecipeService.fetchRecipesByCategory(_selectedCategory!));
+    }
+    if (hasIngredientFilter) {
+      for (final ingredient in _selectedIngredients) {
+        futures.add(RecipeService.fetchRecipesByIngredient(ingredient));
+      }
+    }
+
+    final List<List<dynamic>> results = await Future.wait(futures);
+
+    if (results.isEmpty) {
+      return [];
+    }
+    if (results.length == 1) {
+      return results[0];
+    }
+
+    // Interseção: Encontra as receitas que estão em TODAS as listas de resultados.
+    Map<String, dynamic> intersectionMap = {
+      for (var recipe in results[0]) recipe['idMeal']: recipe
+    };
+
+    for (int i = 1; i < results.length; i++) {
+      final currentIds = results[i].map((recipe) => recipe['idMeal']).toSet();
+      intersectionMap.removeWhere((key, value) => !currentIds.contains(key));
+    }
+
+    return intersectionMap.values.toList();
+  }
+
+  void _toggleFavorite(String mealId) async {
     final user = _auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,29 +145,18 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Cria uma referência ao documento do usuário no Firestore
     final userDocRef = _firestore.collection('users').doc(user.uid);
+    final bool isCurrentlyFavorite = _favoriteMealIds.contains(mealId);
 
-    setState(() {
-      if (_favoriteMealIds.contains(mealId)) {
-        _favoriteMealIds.remove(mealId);
-        // Remover do Firestore
-        userDocRef.update({
-          'favorites': FieldValue.arrayRemove([mealId]),
-        });
-      } else {
-        _favoriteMealIds.add(mealId);
-        // Adicionar ao Firestore
-        userDocRef.set(
-            {
-              'favorites': FieldValue.arrayUnion([mealId]),
-            },
-            SetOptions(
-                merge: true)); // Usa merge para não sobrescrever outros campos
-      }
-    });
-
-    widget.onFavoritesUpdated(_favoriteMealIds, _allRecipes);
+    if (isCurrentlyFavorite) {
+      await userDocRef.update({
+        'favorites': FieldValue.arrayRemove([mealId]),
+      });
+    } else {
+      await userDocRef.set({
+        'favorites': FieldValue.arrayUnion([mealId]),
+      }, SetOptions(merge: true));
+    }
 
     // Feedback visual
     if (!_favoriteMealIds.contains(mealId)) {
@@ -130,6 +168,68 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
+    ;
+  }
+
+  // Mostra um diálogo para seleção múltipla de ingredientes
+  void _showIngredientMultiSelect() async {
+    final List<String>? allIngredients = await _ingredientsFuture;
+    if (allIngredients == null) return;
+
+    final tempSelectedIngredients = Set<String>.from(_selectedIngredients);
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Selecione os Ingredientes'),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: allIngredients.length,
+                  itemBuilder: (context, index) {
+                    final ingredient = allIngredients[index];
+                    return CheckboxListTile(
+                      title: Text(ingredient),
+                      value: tempSelectedIngredients.contains(ingredient),
+                      onChanged: (bool? value) {
+                        setState(() {
+                          if (value == true) {
+                            tempSelectedIngredients.add(ingredient);
+                          } else {
+                            tempSelectedIngredients.remove(ingredient);
+                          }
+                        });
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _selectedIngredients = tempSelectedIngredients;
+                  _searchController.clear();
+                });
+                _filterRecipes();
+                Navigator.pop(context);
+              },
+              child: const Text('Aplicar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -145,8 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text("☀️ Bom dia!",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             Text(
-              _auth.currentUser?.displayName ??
-                  "André", // Exibe o nome do usuário logado
+              _auth.currentUser?.displayName ?? "Visitante",
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
@@ -154,119 +253,60 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   hintText: "Pesquisar receita...",
-                  hintStyle: TextStyle(color: Colors.grey.shade600),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                  prefixIcon: const Icon(Icons.search),
                   border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
                 ),
-                onChanged: (value) {
-                  _filterRecipes();
-                },
+                onChanged: (value) => _filterRecipes(),
               ),
             ),
             const SizedBox(height: 10),
-            const Text("Filtrar por:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            FutureBuilder<List<String>>(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Filtrar por:",
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedCategory = null;
+                      _selectedIngredients
+                          .clear(); // Limpa a lista de ingredientes
+                      _searchController.clear();
+                    });
+                    _filterRecipes();
+                  },
+                  child: const Text("Limpar filtros"),
+                )
+              ],
+            ),
+            // Dropdown de Categorias
+            _buildDropdown(
               future: _categoriesFuture,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox();
-                return Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedCategory,
-                      hint: const Text("Categoria",
-                          style: TextStyle(color: Colors.black54)),
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                      items: snapshot.data!.map((category) {
-                        return DropdownMenuItem(
-                          value: category,
-                          child: Text(category),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCategory = value;
-                          _selectedIngredient = null;
-                          _searchController.clear();
-                        });
-                        _filterRecipes();
-                      },
-                    ),
-                  ),
-                );
+              value: _selectedCategory,
+              hint: "Categoria",
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategory = value;
+                  _searchController.clear();
+                });
+                _filterRecipes();
               },
             ),
-            FutureBuilder<List<String>>(
-              future: _ingredientsFuture,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox();
-                return Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedIngredient,
-                      hint: const Text("Ingrediente",
-                          style: TextStyle(color: Colors.black54)),
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                      items: snapshot.data!.map((ingredient) {
-                        return DropdownMenuItem(
-                          value: ingredient,
-                          child: Text(ingredient),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedIngredient = value;
-                          _selectedCategory = null;
-                          _searchController.clear();
-                        });
-                        _filterRecipes();
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
+            const SizedBox(height: 8),
+            // Botão para selecionar múltiplos ingredientes
+            _buildMultiSelectButton(),
+            const SizedBox(height: 8),
+            // Widget para mostrar os ingredientes selecionados como chips
+            _buildSelectedIngredientChips(),
+
             const SizedBox(height: 20),
             Expanded(
               child: FutureBuilder<List<dynamic>>(
@@ -297,16 +337,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       return RecipeCard(
                         imageUrl: recipe["strMealThumb"],
                         title: recipe["strMeal"],
-                        // Verifica se o ID da receita está nos favoritos
                         isFavorite: _favoriteMealIds.contains(recipe["idMeal"]),
                         onFavoriteToggle: () =>
-                            _toggleFavorite(recipe["idMeal"], recipe),
+                            _toggleFavorite(recipe["idMeal"]),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => RecipeDetailScreen(
-                                  mealId: recipe["idMeal"], recipe: recipe),
+                                mealId: recipe["idMeal"],
+                                recipe: recipe,
+                              ),
                             ),
                           );
                         },
@@ -319,6 +360,88 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Botão que abre o seletor de ingredientes
+  Widget _buildMultiSelectButton() {
+    return GestureDetector(
+      onTap: _showIngredientMultiSelect,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Ingredientes",
+              style: TextStyle(color: Colors.black54, fontSize: 16),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Mostra os ingredientes selecionados como chips
+  Widget _buildSelectedIngredientChips() {
+    if (_selectedIngredients.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Wrap(
+      spacing: 6.0,
+      runSpacing: 6.0,
+      children: _selectedIngredients.map((ingredient) {
+        return Chip(
+          label: Text(ingredient),
+          onDeleted: () {
+            setState(() {
+              _selectedIngredients.remove(ingredient);
+            });
+            _filterRecipes();
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDropdown({
+    required Future<List<String>> future,
+    required String? value,
+    required String hint,
+    required void Function(String?) onChanged,
+  }) {
+    return FutureBuilder<List<String>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              hint: Text(hint, style: const TextStyle(color: Colors.black54)),
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              items: snapshot.data!.map((item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item),
+                );
+              }).toList(),
+              onChanged: onChanged,
+            ),
+          ),
+        );
+      },
     );
   }
 }
