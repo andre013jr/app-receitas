@@ -1,10 +1,9 @@
-// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:recipe_app/widgets/recipe_card.dart';
 import '../recipe_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:async'; // Importado para o StreamSubscription
+import 'dart:async';
 
 import 'recipe_detail_screen.dart';
 
@@ -26,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<String>> _ingredientsFuture;
 
   String? _selectedCategory;
-  // Alterado para um Set para permitir múltiplos ingredientes
   Set<String> _selectedIngredients = {};
   final TextEditingController _searchController = TextEditingController();
 
@@ -123,7 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return results[0];
     }
 
-    // Interseção: Encontra as receitas que estão em TODAS as listas de resultados.
     Map<String, dynamic> intersectionMap = {
       for (var recipe in results[0]) recipe['idMeal']: recipe
     };
@@ -158,9 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }, SetOptions(merge: true));
     }
 
-    // Feedback visual
     if (!_favoriteMealIds.contains(mealId)) {
-      // Verifica se foi removido
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Removido dos favoritos 💔"),
@@ -171,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ;
   }
 
-  // Mostra um diálogo para seleção múltipla de ingredientes
   void _showIngredientMultiSelect() async {
     final List<String>? allIngredients = await _ingredientsFuture;
     if (allIngredients == null) return;
@@ -277,8 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     setState(() {
                       _selectedCategory = null;
-                      _selectedIngredients
-                          .clear(); // Limpa a lista de ingredientes
+                      _selectedIngredients.clear();
                       _searchController.clear();
                     });
                     _filterRecipes();
@@ -287,7 +280,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               ],
             ),
-            // Dropdown de Categorias
             _buildDropdown(
               future: _categoriesFuture,
               value: _selectedCategory,
@@ -301,12 +293,9 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const SizedBox(height: 8),
-            // Botão para selecionar múltiplos ingredientes
             _buildMultiSelectButton(),
             const SizedBox(height: 8),
-            // Widget para mostrar os ingredientes selecionados como chips
             _buildSelectedIngredientChips(),
-
             const SizedBox(height: 20),
             Expanded(
               child: FutureBuilder<List<dynamic>>(
@@ -363,7 +352,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Botão que abre o seletor de ingredientes
   Widget _buildMultiSelectButton() {
     return GestureDetector(
       onTap: _showIngredientMultiSelect,
@@ -387,7 +375,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Mostra os ingredientes selecionados como chips
   Widget _buildSelectedIngredientChips() {
     if (_selectedIngredients.isEmpty) {
       return const SizedBox.shrink();

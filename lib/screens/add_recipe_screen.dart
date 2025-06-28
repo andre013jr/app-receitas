@@ -1,5 +1,3 @@
-// lib/screens/add_recipe_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,9 +23,10 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        // Se o usuário não estiver logado, não faz nada.
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você precisa estar logado para salvar uma receita.')),
+          const SnackBar(
+              content:
+                  Text('Você precisa estar logado para salvar uma receita.')),
         );
         setState(() {
           _isSaving = false;
@@ -36,7 +35,6 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
       }
 
       try {
-        // Salva a nova receita na subcoleção 'my_recipes' do usuário
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -128,7 +126,8 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
                 ),
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Salvar Receita', style: TextStyle(fontSize: 18)),
+                    : const Text('Salvar Receita',
+                        style: TextStyle(fontSize: 18)),
               ),
             ],
           ),

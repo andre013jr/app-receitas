@@ -1,4 +1,3 @@
-// lib/screens/profile_screen.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:recipe_app/widgets/recipe_card.dart';
@@ -19,7 +18,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   User? _currentUser;
-  String? _userBio; // Variável para armazenar a biografia
+  String? _userBio;
 
   @override
   void initState() {
@@ -29,11 +28,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _refreshUserProfile() {
     _currentUser = FirebaseAuth.instance.currentUser;
-    _loadUserBio(); // Carrega a biografia ao atualizar o perfil
+    _loadUserBio();
     setState(() {});
   }
 
-  // Função para carregar a biografia do Firestore
   Future<void> _loadUserBio() async {
     if (_currentUser != null) {
       final userDoc = await FirebaseFirestore.instance
@@ -92,10 +90,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: ListTile(
                 leading: CircleAvatar(
                   radius: 30,
-                  // Lógica para exibir um ícone padrão se a URL for nula ou inválida
-                  backgroundImage: (userAvatarUrl != null && userAvatarUrl.isNotEmpty)
-                      ? NetworkImage(userAvatarUrl)
-                      : null,
+                  backgroundImage:
+                      (userAvatarUrl != null && userAvatarUrl.isNotEmpty)
+                          ? NetworkImage(userAvatarUrl)
+                          : null,
                   child: (userAvatarUrl == null || userAvatarUrl.isEmpty)
                       ? const Icon(Icons.person, size: 30)
                       : null,
@@ -120,7 +118,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            // Seção da Biografia
             if (_userBio != null && _userBio!.isNotEmpty) ...[
               const Text(
                 'Sobre Mim',

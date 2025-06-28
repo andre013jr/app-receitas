@@ -1,4 +1,3 @@
-// lib/screens/edit_profile_screen.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -32,7 +31,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _displayNameController.text = _currentUser!.displayName ?? '';
       _photoURLController.text = _currentUser!.photoURL ?? '';
 
-      // Carrega a biografia do Firestore
       final userDoc =
           await _firestore.collection('users').doc(_currentUser!.uid).get();
       if (userDoc.exists && userDoc.data()!.containsKey('bio')) {
@@ -60,11 +58,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         String newBio = _bioController.text.trim();
 
         if (_currentUser != null) {
-          // Atualiza o nome e a foto no Firebase Auth
           await _currentUser!.updateDisplayName(newDisplayName);
           await _currentUser!.updatePhotoURL(newPhotoURL);
 
-          // Salva/Atualiza a biografia no Firestore
           await _firestore
               .collection('users')
               .doc(_currentUser!.uid)
@@ -123,8 +119,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           },
                         ),
                         const SizedBox(height: 20),
-                       
-                    
                         TextFormField(
                           controller: _bioController,
                           decoration: const InputDecoration(

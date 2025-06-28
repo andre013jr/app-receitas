@@ -1,7 +1,6 @@
-// lib/screens/register_screen.dart
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Importe o Firebase Auth
-import 'package:recipe_app/screens/main_screen.dart'; // Importe sua MainScreen
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:recipe_app/screens/main_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,7 +15,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Variável de estado para controlar a visibilidade da senha
   bool _isPasswordVisible = false;
 
   @override
@@ -35,11 +33,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text.trim(),
       );
 
-      // Opcional: Atualizar o perfil do usuário com o nome de usuário
       await userCredential.user
           ?.updateDisplayName(_usernameController.text.trim());
 
-      // Se o registro for bem-sucedido, navegue para a MainScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),
@@ -78,7 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             children: [
               const Text(
-                'Cadastra-se',
+                'Cadastre-se',
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 40),
@@ -98,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _passwordController,
                 icon: Icons.lock,
                 hint: 'SENHA',
-                isPassword: true, // Indica que este é um campo de senha
+                isPassword: true,
               ),
               const SizedBox(height: 30),
               ElevatedButton(
@@ -128,7 +124,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }) {
     return TextField(
       controller: controller,
-      // Se for um campo de senha, obscureText depende de _isPasswordVisible
       obscureText: isPassword ? !_isPasswordVisible : false,
       decoration: InputDecoration(
         hintText: hint,
@@ -147,21 +142,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           borderRadius: BorderRadius.circular(30),
           borderSide: const BorderSide(color: Color(0xFF75B9BE), width: 2),
         ),
-        // Adiciona o ícone de olho apenas se for um campo de senha
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
-                  // Altera o ícone com base no estado _isPasswordVisible
                   _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                 ),
                 onPressed: () {
-                  // Alterna o estado _isPasswordVisible e reconstrói a UI
                   setState(() {
                     _isPasswordVisible = !_isPasswordVisible;
                   });
                 },
               )
-            : null, // Se não for senha, não há suffixIcon
+            : null,
       ),
     );
   }

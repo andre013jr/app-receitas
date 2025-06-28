@@ -1,4 +1,3 @@
-// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:recipe_app/screens/main_screen.dart';
@@ -24,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    // Impede múltiplos cliques enquanto o login está em andamento
     if (_isLoading) return;
 
     setState(() {
@@ -37,7 +35,6 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
 
-      // A verificação 'mounted' garante que o widget ainda está na árvore de widgets
       if (!mounted) return;
 
       Navigator.pushReplacement(
@@ -46,8 +43,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on FirebaseAuthException catch (e) {
       String message;
-      // O código 'invalid-credential' é retornado para e-mail/senha incorretos
-      // nas versões mais recentes do Firebase Auth.
       if (e.code == 'user-not-found' ||
           e.code == 'wrong-password' ||
           e.code == 'invalid-credential') {
@@ -66,7 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text('Ocorreu um erro inesperado: $e')),
       );
     } finally {
-      // Garante que o estado de loading seja resetado mesmo se ocorrer um erro
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -82,21 +76,15 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // Alteração Principal: Usando um IconButton para ter controle explícito.
-        // O `BackButton` padrão faz algo muito similar, mas este código
-        // deixa claro a intenção de voltar na pilha de navegação.
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            // Apenas executa a ação se for possível voltar.
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             }
           },
         ),
       ),
-      // Adicionado SingleChildScrollView para evitar que o teclado
-      // cause um erro de overflow no layout.
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 20.0),
@@ -115,12 +103,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 icon: Icons.email_outlined,
                 hint: 'Email',
-                keyboardType:
-                    TextInputType.emailAddress, // Melhora a usabilidade
+                keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 20),
-              // O widget de campo de texto para senha agora é um StatefulWidget
-              // para gerenciar a visibilidade da senha.
               _PasswordTextField(controller: _passwordController),
               const SizedBox(height: 30),
               ElevatedButton(
@@ -135,7 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   disabledBackgroundColor:
                       const Color(0xFF042628).withOpacity(0.5),
                 ),
-                // Mostra um indicador de progresso durante o login
                 child: _isLoading
                     ? const SizedBox(
                         height: 24,
@@ -154,7 +138,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Este método foi mantido para o campo de email.
   Widget _buildTextField({
     required TextEditingController controller,
     required IconData icon,
@@ -186,7 +169,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// Criei um widget separado para a senha para gerenciar seu próprio estado de visibilidade.
 class _PasswordTextField extends StatefulWidget {
   const _PasswordTextField({required this.controller});
 

@@ -53,11 +53,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       children: [
                         Text(
                           recipeDetails!["strMeal"],
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 10),
                         Text(
-                          recipeDetails!["strInstructions"], // Exibe a descrição
+                          recipeDetails!["strInstructions"],
                           style: TextStyle(fontSize: 16),
                         ),
                       ],
